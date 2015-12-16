@@ -1,0 +1,6 @@
+web:
+    build: .
+    volumes:
+        - .:/usr/local/go/src/github.com/NarrativeTeam/shawty/
+    ports:
+        - "8081:8080"
