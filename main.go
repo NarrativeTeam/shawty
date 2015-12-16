@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/didip/shawty/handlers"
-	"github.com/didip/shawty/storages"
+	"github.com/NarrativeTeam/shawty/handlers"
+	"github.com/NarrativeTeam/shawty/storages"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -22,9 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	http.Handle("/", handlers.EncodeHandler(storage))
-	http.Handle("/dec/", handlers.DecodeHandler(storage))
-	http.Handle("/red/", handlers.RedirectHandler(storage))
+	http.Handle("/", handlers.MainHandler(storage))
 
 	port := os.Getenv("PORT")
 	if port == "" {

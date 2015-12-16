@@ -2,50 +2,55 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
-	"github.com/didip/shawty/storages"
+	"github.com/NarrativeTeam/shawty/storages"
 )
 
-func EncodeHandler(storage storages.IStorage) http.Handler {
-	handleFunc := func(w http.ResponseWriter, r *http.Request) {
-		if url := r.PostFormValue("url"); url != "" {
-			w.Write([]byte(storage.Save(url)))
-		}
-	}
-
-	return http.HandlerFunc(handleFunc)
+type APIURL struct {
+	Url      string `json:"url"`
+	ShortUrl string `json:"short_url"`
 }
 
-func DecodeHandler(storage storages.IStorage) http.Handler {
+func MainHandler(storage storages.IStorage) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Path[len("/dec/"):]
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
+			code := r.URL.Path
 
-		url, err := storage.Load(code)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("URL Not Found. Error: " + err.Error() + "\n"))
-			return
+			url, err := storage.Load(code)
+			if err != nil {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("URL Not Found. Error: " + err.Error() + "\n"))
+				return
+			}
+
+			http.Redirect(w, r, string(url), 301)
+		} else if r.Method == "POST" {
+			dec := json.NewDecoder(r.Body)
+			var data APIURL
+			err := dec.Decode(&data)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if data.Url != "" {
+				data.ShortUrl = storage.Save(data.Url)
+				out, err := json.Marshal(data)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.Write(out)
+				return
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
 
-		w.Write([]byte(url))
-	}
-
-	return http.HandlerFunc(handleFunc)
-}
-
-func RedirectHandler(storage storages.IStorage) http.Handler {
-	handleFunc := func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Path[len("/red/"):]
-
-		url, err := storage.Load(code)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("URL Not Found. Error: " + err.Error() + "\n"))
-			return
-		}
-
-		http.Redirect(w, r, string(url), 301)
 	}
 
 	return http.HandlerFunc(handleFunc)
