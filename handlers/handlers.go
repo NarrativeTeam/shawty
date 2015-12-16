@@ -13,26 +13,41 @@ type APIURL struct {
 	ShortUrl string `json:"short_url"`
 }
 
+type APIError struct {
+	Msg        string `json:"error"`
+	statusCode int
+}
+
+func (apiErr APIError) writeTo(w http.ResponseWriter) {
+	out, err := json.Marshal(apiErr)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(apiErr.statusCode)
+		w.Write(out)
+	}
+}
+
 func MainHandler(storage storages.IStorage) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+
 		if r.Method == "GET" {
-			code := r.URL.Path
+			// We need to remove the / in the beginning of path
+			code := r.URL.Path[1:]
 
 			url, err := storage.Load(code)
 			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte("URL Not Found. Error: " + err.Error() + "\n"))
+				APIError{"No url found for token", http.StatusNotFound}.writeTo(w)
 				return
 			}
-
 			http.Redirect(w, r, string(url), 301)
 		} else if r.Method == "POST" {
 			dec := json.NewDecoder(r.Body)
 			var data APIURL
 			err := dec.Decode(&data)
 			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
+				APIError{"Unable to parse json-input", http.StatusBadRequest}.writeTo(w)
 				return
 			}
 
@@ -46,7 +61,7 @@ func MainHandler(storage storages.IStorage) http.Handler {
 				w.Write(out)
 				return
 			} else {
-				w.WriteHeader(http.StatusBadRequest)
+				APIError{"Missing required parameter 'url'", http.StatusBadRequest}.writeTo(w)
 				return
 			}
 		}
