@@ -52,10 +52,17 @@ func MainHandler(storage storages.IStorage) http.Handler {
 			}
 
 			if data.Url != "" {
-				data.ShortUrl = storage.Save(data.Url)
+				token, err := storage.Save(data.Url)
+				if err != nil {
+					APIError{"Internal server error", http.StatusInternalServerError}.writeTo(w)
+					return
+				}
+				shortUrl := *r.URL
+				shortUrl.Path = token
+				data.ShortUrl = shortUrl.String()
 				out, err := json.Marshal(data)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+					APIError{"Internal server error", http.StatusInternalServerError}.writeTo(w)
 					return
 				}
 				w.Write(out)

@@ -10,13 +10,13 @@ import (
 
 type MockStorage struct{}
 
-func (s *MockStorage) Save(url string) string {
-	return "short-" + url
+func (s *MockStorage) Save(url string) (string, error) {
+	return url, nil
 }
 
 func (s *MockStorage) Load(token string) (string, error) {
-	if strings.HasPrefix(token, "short-") {
-		return token[len("short-"):len(token)], nil
+	if token != "" {
+		return token, nil
 	} else {
 		return "", fmt.Errorf("No short-url found")
 	}
@@ -31,7 +31,7 @@ func TestEncodeURL(t *testing.T) {
 		{
 			`{"url": "http://foo.bar"}`,
 			200,
-			`{"url":"http://foo.bar","short_url":"short-http://foo.bar"}`,
+			`{"url":"http://foo.bar","short_url":"http://shawty.io/http://foo.bar"}`,
 		}, {
 			`{}`,
 			400,
@@ -45,7 +45,7 @@ func TestEncodeURL(t *testing.T) {
 	handler := MainHandler(&MockStorage{})
 	for _, c := range cases {
 		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "", strings.NewReader(c.input))
+		req, _ := http.NewRequest("POST", "http://shawty.io/", strings.NewReader(c.input))
 		handler.ServeHTTP(resp, req)
 		if resp.Code != c.statusCode {
 			t.Errorf("Incorrect status-code: %v expected %v", resp.Code, c.statusCode)
@@ -58,18 +58,18 @@ func TestEncodeURL(t *testing.T) {
 
 func TestRedirect(t *testing.T) {
 	cases := []struct {
-		path           string
+		url            string
 		statusCode     int
 		locationHeader string
 	}{
-		{"short-http://google.com", 301, "http://google.com"},
-		{"", 404, ""},
+		{"http://shawty.io/http://google.com", 301, "http://google.com"},
+		{"http://shawty.io/", 404, ""},
 	}
 
 	handler := MainHandler(&MockStorage{})
 	for _, c := range cases {
 		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "http://shawty.io/"+c.path, nil)
+		req, _ := http.NewRequest("GET", c.url, nil)
 		handler.ServeHTTP(resp, req)
 		if resp.Code != c.statusCode {
 			t.Errorf("Incorrect status-code: %v expected %v", resp.Code, c.statusCode)
