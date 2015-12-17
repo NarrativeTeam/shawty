@@ -31,7 +31,7 @@ func TestEncodeURL(t *testing.T) {
 		{
 			`{"url": "http://foo.bar"}`,
 			200,
-			`{"url":"http://foo.bar","short_url":"http://shawty.io/http://foo.bar"}`,
+			`{"url":"http://foo.bar","short_url":"https://shawty.io/http://foo.bar"}`,
 		}, {
 			`{}`,
 			400,

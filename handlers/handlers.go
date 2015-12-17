@@ -4,6 +4,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/NarrativeTeam/shawty/storages"
 )
@@ -57,8 +58,11 @@ func MainHandler(storage storages.IStorage) http.Handler {
 					APIError{"Internal server error", http.StatusInternalServerError}.writeTo(w)
 					return
 				}
-				shortUrl := *r.URL
-				shortUrl.Path = token
+				shortUrl := url.URL{
+					Host:   r.Host,
+					Path:   token,
+					Scheme: "https",
+				}
 				data.ShortUrl = shortUrl.String()
 				out, err := json.Marshal(data)
 				if err != nil {
