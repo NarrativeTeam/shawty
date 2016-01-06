@@ -6,8 +6,7 @@ import (
 )
 
 func GetTestPostgres() *Postgres {
-	// We need to fetch the actuall address for postgres, it seems like the driver doesn't respect /etc/hosts
-	host := os.Getenv("POSTGRES_PORT_5432_TCP_ADDR")
+	host := os.Getenv("POSTGRES_HOST")
 	pg, err := NewPostgres(host, "postgres", "postgres", "postgres", false)
 	if err != nil {
 		panic(err)
@@ -62,4 +61,26 @@ func TestStoreRestore(t *testing.T) {
 			t.Errorf("Got unexpected url from storage: %v expected %v", url, c.url)
 		}
 	}
+}
+
+func TestRestoreStats(t *testing.T) {
+	storage := GetTestPostgres()
+	token, err := storage.Save("http://google.com")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	storage.Load(token)
+	storage.Load(token)
+	storage.Load(token)
+	storage.Load(token)
+
+	stats, err := storage.GetStats(token)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if stats.hits != 4 {
+		t.Errorf("Unexpected number of hits: %v expected 4", stats.hits)
+	}
+
 }

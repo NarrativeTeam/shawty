@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/getsentry/raven-go"
 	_ "github.com/lib/pq"
 )
 
@@ -53,11 +54,26 @@ func (ps *Postgres) Save(url string) (token string, err error) {
 func (ps *Postgres) Load(token string) (url string, err error) {
 	row := ps.db.QueryRow(SELECT_URL_SQL, token)
 	err = row.Scan(&url)
+	_, statsErr := ps.db.Exec(INSERT_STATS_SQL, token)
+	if statsErr != nil {
+		// If there's an error inserting stats we just track this, and continues the user-facing request
+		raven.CaptureError(statsErr, nil, nil)
+	}
 	return
 }
 
 func (ps *Postgres) Close() error {
 	return ps.db.Close()
+}
+
+type ShortUrlStats struct {
+	hits int
+}
+
+func (ps *Postgres) GetStats(token string) (stats ShortUrlStats, err error) {
+	row := ps.db.QueryRow(SELECT_STATS_SQL, token)
+	err = row.Scan(&stats.hits)
+	return
 }
 
 // Setup the database, create tables etc.

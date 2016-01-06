@@ -3,7 +3,8 @@ web:
     volumes:
         - .:/usr/local/go/src/github.com/NarrativeTeam/shawty/
     environment:
-        - POSTGRES_HOST=172.17.0.9
+        # We need to use actual address for postgres, it seems like the driver doesn't respect /etc/hosts
+        - POSTGRES_HOST=172.17.0.3
         - POSTGRES_USER=postgres
         - POSTGRES_PASSWORD=postgres
         - POSTGRES_SSL=false
