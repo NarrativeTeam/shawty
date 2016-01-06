@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/NarrativeTeam/shawty/storages"
+	"github.com/getsentry/raven-go"
 )
 
 type APIURL struct {
@@ -29,7 +30,7 @@ func (apiErr APIError) writeTo(w http.ResponseWriter) {
 	}
 }
 
-func MainHandler(storage storages.IStorage) http.Handler {
+func MainHandler(storage storages.IStorage) http.HandlerFunc {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -56,6 +57,7 @@ func MainHandler(storage storages.IStorage) http.Handler {
 				token, err := storage.Save(data.Url)
 				if err != nil {
 					APIError{"Internal server error", http.StatusInternalServerError}.writeTo(w)
+					raven.CaptureError(err, nil, nil)
 					return
 				}
 				shortUrl := url.URL{
@@ -67,6 +69,7 @@ func MainHandler(storage storages.IStorage) http.Handler {
 				out, err := json.Marshal(data)
 				if err != nil {
 					APIError{"Internal server error", http.StatusInternalServerError}.writeTo(w)
+					raven.CaptureError(err, nil, nil)
 					return
 				}
 				w.Write(out)
@@ -78,6 +81,5 @@ func MainHandler(storage storages.IStorage) http.Handler {
 		}
 
 	}
-
-	return http.HandlerFunc(handleFunc)
+	return handleFunc
 }

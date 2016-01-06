@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -11,8 +10,13 @@ import (
 
 	"github.com/NarrativeTeam/shawty/handlers"
 	"github.com/NarrativeTeam/shawty/storages"
+	"github.com/getsentry/raven-go"
 	"github.com/mitchellh/go-homedir"
 )
+
+func init() {
+	raven.SetDSN(os.Getenv("SENTRY_DSN"))
+}
 
 func main() {
 	// Seed the randomizer for the token-generation
@@ -30,26 +34,28 @@ func main() {
 		pg, err := storages.NewPostgres(postgresHost, user, password, dbName, ssl)
 		if err != nil {
 			//Could not correct to postgres
-			log.Panic(err)
+			raven.CaptureError(err, nil, nil)
 		}
 		storage = pg
 	} else {
 		str := &storages.Filesystem{}
 		err := str.Init(filepath.Join(dir, "shawty"))
 		if err != nil {
-			log.Fatal(err)
+			raven.CaptureError(err, nil, nil)
 		}
 		storage = str
 	}
 
-	http.Handle("/", handlers.MainHandler(storage))
+	http.HandleFunc("/", raven.RecoveryHandler(handlers.MainHandler(storage)))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
+
+	raven.CaptureMessage("Starting http-server", nil, nil)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		log.Fatal(err)
+		raven.CaptureError(err, nil, nil)
 	}
 }

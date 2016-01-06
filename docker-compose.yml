@@ -3,14 +3,27 @@ web:
     volumes:
         - .:/usr/local/go/src/github.com/NarrativeTeam/shawty/
     environment:
-        - POSTGRES_HOST=postgres
+        - POSTGRES_HOST=172.17.0.9
         - POSTGRES_USER=postgres
         - POSTGRES_PASSWORD=postgres
         - POSTGRES_SSL=false
+        - SENTRY_DSN=http://public:secret@sentry:9000/2
     ports:
         - "8081:8080"
     links:
         - postgres
+        - sentry
 
 postgres:
     image: postgres
+
+sentry:
+    image: slafs/sentry
+    ports:
+        - "9000:9000"
+    environment:
+        SECRET_KEY: randomvalue
+        SENTRY_INITIAL_TEAM: 'narrative'
+        SENTRY_INITIAL_PROJECT: 'shawty'
+        SENTRY_URL_PREFIX: "http://192.168.99.100:9000"
+        SENTRY_INITIAL_KEY: "public:secret"
