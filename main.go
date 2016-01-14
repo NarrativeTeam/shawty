@@ -64,7 +64,6 @@ func main() {
 		port = "8080"
 	}
 
-	raven.CaptureMessage("Starting http-server", nil, nil)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		raven.CaptureError(err, nil, nil)
