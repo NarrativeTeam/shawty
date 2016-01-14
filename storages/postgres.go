@@ -11,7 +11,7 @@ import (
 
 var runes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
 
-func GetRandomToken() string {
+func getRandomToken() string {
 	b := make([]rune, 6)
 	for i := range b {
 		b[i] = runes[rand.Intn(len(runes))]
@@ -46,7 +46,7 @@ type Postgres struct {
 }
 
 func (ps *Postgres) Save(url string) (token string, err error) {
-	token = GetRandomToken()
+	token = getRandomToken()
 	_, err = ps.db.Exec(INSERT_URL_SQL, url, token)
 	return
 }

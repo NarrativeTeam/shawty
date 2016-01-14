@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"math/rand"
 	"net/http"
 	"os"
@@ -14,11 +15,16 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
+var migrate bool
+
 func init() {
 	raven.SetDSN(os.Getenv("SENTRY_DSN"))
+	flag.BoolVar(&migrate, "migrate", false, "Specify to migrate database")
 }
 
 func main() {
+	flag.Parse()
+
 	// Seed the randomizer for the token-generation
 	rand.Seed(time.Now().UnixNano())
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -31,12 +37,17 @@ func main() {
 		password := os.Getenv("POSTGRES_PASSWORD")
 		dbName := os.Getenv("POSTGRES_DB")
 		ssl := os.Getenv("POSTGRES_SSL") != "false"
-		pg, err := storages.NewPostgres(postgresHost, user, password, dbName, ssl)
+		pg, err := storages.NewPostgres(postgresHost, dbName, user, password, ssl)
 		if err != nil {
 			//Could not correct to postgres
 			raven.CaptureError(err, nil, nil)
+			panic(err)
 		}
 		storage = pg
+		if migrate {
+			pg.Setup()
+			return
+		}
 	} else {
 		str := &storages.Filesystem{}
 		err := str.Init(filepath.Join(dir, "shawty"))
